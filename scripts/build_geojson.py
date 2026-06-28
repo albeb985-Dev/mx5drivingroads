@@ -11,7 +11,7 @@ CATEGORIES = {
     "best-roads": "best-roads.geojson",
 }
 
-GITHUB_RAW_BASE = "https://raw.githubusercontent.com/albeb985-Dev/gpxprocessor/main"
+GITHUB_RAW_BASE = "https://raw.githubusercontent.com/albeb985-Dev/mx5drivingroads/main"
 
 def build_category(category: str, out_file: str):
     features = []
