@@ -6,7 +6,7 @@ BASE = Path("data")
 OUTPUT = Path("docs")
 
 CATEGORIES = {
-    "route-trip": "route-trip.geojson",
+    "route-trips": "route-trips.geojson",
     "raduni": "raduni.geojson",
     "best-roads": "best-roads.geojson",
 }
