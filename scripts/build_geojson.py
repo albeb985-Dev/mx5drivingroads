@@ -1,5 +1,4 @@
 import json
-import os
 from pathlib import Path
 
 BASE = Path("data")
@@ -11,18 +10,18 @@ CATEGORIES = {
     "best-roads": "best-roads.geojson",
 }
 
+# URL RAW del tuo repository GitHub
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/albeb985-Dev/mx5drivingroads/main"
+
 
 def build_category(category: str, out_file: str):
     features = []
     cat_dir = BASE / category
 
-    # Se la cartella non esiste → ignora la categoria
     if not cat_dir.exists():
         print(f"[WARN] Categoria '{category}' ignorata: cartella non trovata ({cat_dir})")
         return
 
-    # Se la cartella esiste ma è vuota → nessun errore
     has_dirs = False
 
     for route_dir in cat_dir.iterdir():
@@ -30,55 +29,61 @@ def build_category(category: str, out_file: str):
             continue
 
         has_dirs = True
-        geojson_path = route_dir / "track.geojson"
+
+        folder_name = route_dir.name
+
+        # File principali
+        geojson_path = route_dir / f"{folder_name}.geojson"
+        html_path = route_dir / f"{folder_name}_info.html"
+        elev_path = route_dir / f"{folder_name}_elevation.png"
+
+        # Se manca il geojson → ignora il percorso
         if not geojson_path.exists():
+            print(f"[WARN] Nessun GeoJSON trovato in {route_dir}")
             continue
 
+        # Carica il GeoJSON del percorso
         with geojson_path.open("r", encoding="utf-8") as f:
             data = json.load(f)
 
-        # assumiamo che track.geojson contenga una Feature o FeatureCollection
+        # Estrarre solo la geometria
         if data.get("type") == "FeatureCollection":
-            route_features = data["features"]
+            geometry = data["features"][0]["geometry"]
         else:
-            route_features = [data]
+            geometry = data["geometry"]
 
-        # meta opzionale
-        meta_path = route_dir / "meta.json"
-        meta = {}
-        if meta_path.exists():
-            with meta_path.open("r", encoding="utf-8") as f:
-                meta = json.load(f)
-
-        # URL dei file nel repo
+        # URL RAW dei file
         rel = route_dir.relative_to(Path("."))
 
-        folder_name = route_dir.name
         html_url = f"{GITHUB_RAW_BASE}/{rel}/{folder_name}_info.html"
-        elev_url = f"{GITHUB_RAW_BASE}/{rel}/{folder_name}_elevation.html"
+        elev_url = f"{GITHUB_RAW_BASE}/{rel}/{folder_name}_elevation.png"
 
-        for feat in route_features:
-            props = feat.setdefault("properties", {})
-            props.setdefault("name", meta.get("title", route_dir.name))
+        # Popup HTML elegante
+        popup_html = (
+            f"<h3>{folder_name.replace('-', ' ').title()}</h3>"
+            f"<img src='{elev_url}' style='width:100%;margin-bottom:10px;' />"
+            f"<iframe src='{html_url}' "
+            f"style='width:100%;height:400px;border:none;'></iframe>"
+        )
 
-            # popup HTML: iframe + immagine altimetrica
-            props["description"] = (
-                f"<h3>{props['name']}</h3>"
-                f"<img src='{elev_url}' style='width:100%;' />"
-                f"<iframe src='{html_url}' "
-                f"style='width:100%;height:400px;border:none;'></iframe>"
-            )
+        # Costruzione della feature
+        feature = {
+            "type": "Feature",
+            "geometry": geometry,
+            "properties": {
+                "name": folder_name.replace("-", " ").title(),
+                "description": popup_html,
+                "category": category
+            }
+        }
 
-            # categoria utile per filtri futuri
-            props["category"] = category
+        features.append(feature)
 
-            features.append(feat)
-
-    # Se non ci sono directory → non creare file vuoti
     if not has_dirs:
         print(f"[INFO] Categoria '{category}' vuota: nessun file generato.")
         return
 
+    # FeatureCollection finale
     collection = {
         "type": "FeatureCollection",
         "features": features,
@@ -86,12 +91,17 @@ def build_category(category: str, out_file: str):
 
     OUTPUT.mkdir(exist_ok=True)
     out_path = OUTPUT / out_file
+
     with out_path.open("w", encoding="utf-8") as f:
         json.dump(collection, f, ensure_ascii=False)
+
+    print(f"[OK] Generato: {out_path}")
+
 
 def main():
     for cat, filename in CATEGORIES.items():
         build_category(cat, filename)
+
 
 if __name__ == "__main__":
     main()
