@@ -52,8 +52,10 @@ def build_category(category: str, out_file: str):
 
         # URL dei file nel repo
         rel = route_dir.relative_to(Path("."))
-        html_url = f"{GITHUB_RAW_BASE}/{rel}/info.html"
-        elev_url = f"{GITHUB_RAW_BASE}/{rel}/elevation.png"
+
+        folder_name = route_dir.name
+        html_url = f"{GITHUB_RAW_BASE}/{rel}/{folder_name}_info.html"
+        elev_url = f"{GITHUB_RAW_BASE}/{rel}/{folder_name}_elevation.html"
 
         for feat in route_features:
             props = feat.setdefault("properties", {})
