@@ -10,6 +10,7 @@ CATEGORIES = {
     "best-roads": "best-roads.geojson",
 }
 
+# URL RAW del branch main
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/albeb985-Dev/mx5drivingroads/main"
 
 
@@ -30,24 +31,32 @@ def build_category(category: str, out_file: str):
         has_dirs = True
         folder_name = route_dir.name
 
+        # File principali
         geojson_path = route_dir / f"{folder_name}.geojson"
+        html_path = route_dir / f"{folder_name}_info.html"
+        elev_path = route_dir / f"{folder_name}_elevation.png"
+
         if not geojson_path.exists():
             print(f"[WARN] Nessun GeoJSON trovato in {route_dir}")
             continue
 
+        # Carica il GeoJSON
         with geojson_path.open("r", encoding="utf-8") as f:
             data = json.load(f)
 
+        # Estrarre solo la geometria
         if data.get("type") == "FeatureCollection":
             geometry = data["features"][0]["geometry"]
         else:
             geometry = data["geometry"]
 
-        # URL dei file nel branch main (RAW)
+        # URL RAW dei file nel branch main
         rel = route_dir.relative_to(Path("."))
+
         html_url = f"{GITHUB_RAW_BASE}/{rel}/{folder_name}_info.html"
         elev_url = f"{GITHUB_RAW_BASE}/{rel}/{folder_name}_elevation.png"
 
+        # Popup HTML
         popup_html = (
             f"<h3>{folder_name}</h3>"
             f"<img src='{elev_url}' style='width:100%;margin-bottom:10px;' />"
@@ -80,7 +89,7 @@ def build_category(category: str, out_file: str):
     out_path = OUTPUT / out_file
 
     with out_path.open("w", encoding="utf-8") as f:
-        json.dump(collection, f, ensure_ascii=False)
+        json.dump(collection, f, ensure_ascii=False, indent=2)
 
     print(f"[OK] Generato: {out_path}")
 
