@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from urllib.parse import quote
 
 BASE = Path("data")
 OUTPUT = Path("docs")
@@ -10,7 +11,6 @@ CATEGORIES = {
     "best-roads": "best-roads.geojson",
 }
 
-# URL RAW del tuo repository GitHub
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/albeb985-Dev/mx5drivingroads/main"
 
 
@@ -52,15 +52,14 @@ def build_category(category: str, out_file: str):
         else:
             geometry = data["geometry"]
 
-        # URL RAW dei file
-        rel = route_dir.relative_to(Path("."))
+        # URL RAW con encoding
+        rel = quote(str(route_dir).replace("\\", "/"))
+        html_url = f"{GITHUB_RAW_BASE}/{rel}/{quote(folder_name)}_info.html"
+        elev_url = f"{GITHUB_RAW_BASE}/{rel}/{quote(folder_name)}_elevation.png"
 
-        html_url = f"{GITHUB_RAW_BASE}/{rel}/{folder_name}_info.html"
-        elev_url = f"{GITHUB_RAW_BASE}/{rel}/{folder_name}_elevation.png"
-
-        # Popup HTML elegante
+        # Popup HTML
         popup_html = (
-            f"<h3>{folder_name.replace('-', ' ').title()}</h3>"
+            f"<h3>{folder_name}</h3>"
             f"<img src='{elev_url}' style='width:100%;margin-bottom:10px;' />"
             f"<iframe src='{html_url}' "
             f"style='width:100%;height:400px;border:none;'></iframe>"
@@ -71,7 +70,7 @@ def build_category(category: str, out_file: str):
             "type": "Feature",
             "geometry": geometry,
             "properties": {
-                "name": folder_name.replace("-", " ").title(),
+                "name": folder_name,
                 "description": popup_html,
                 "category": category
             }
