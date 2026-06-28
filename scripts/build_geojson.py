@@ -17,10 +17,19 @@ def build_category(category: str, out_file: str):
     features = []
     cat_dir = BASE / category
 
+    # Se la cartella non esiste → ignora la categoria
+    if not cat_dir.exists():
+        print(f"[WARN] Categoria '{category}' ignorata: cartella non trovata ({cat_dir})")
+        return
+
+    # Se la cartella esiste ma è vuota → nessun errore
+    has_dirs = False
+
     for route_dir in cat_dir.iterdir():
         if not route_dir.is_dir():
             continue
 
+        has_dirs = True
         geojson_path = route_dir / "track.geojson"
         if not geojson_path.exists():
             continue
@@ -62,6 +71,11 @@ def build_category(category: str, out_file: str):
             props["category"] = category
 
             features.append(feat)
+
+    # Se non ci sono directory → non creare file vuoti
+    if not has_dirs:
+        print(f"[INFO] Categoria '{category}' vuota: nessun file generato.")
+        return
 
     collection = {
         "type": "FeatureCollection",
