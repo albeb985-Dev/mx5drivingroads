@@ -1,8 +1,10 @@
 import json
 from pathlib import Path
+from string import Template
 
 BASE = Path("data")
 OUTPUT = Path("docs")
+TEMPLATE_PATH = Path("templates/popup_template.html")
 
 CATEGORIES = {
     "route-trips": "route-trips.geojson",
@@ -10,8 +12,14 @@ CATEGORIES = {
     "best-roads": "best-roads.geojson",
 }
 
-# URL RAW del branch main
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/albeb985-Dev/mx5drivingroads/main"
+
+
+def render_popup_html(context):
+    """Renderizza il template HTML con i dati del percorso."""
+    with TEMPLATE_PATH.open("r", encoding="utf-8") as f:
+        tpl = Template(f.read())
+    return tpl.safe_substitute(context)
 
 
 def build_category(category: str, out_file: str):
@@ -35,6 +43,7 @@ def build_category(category: str, out_file: str):
         geojson_path = route_dir / f"{folder_name}.geojson"
         html_path = route_dir / f"{folder_name}_info.html"
         elev_path = route_dir / f"{folder_name}_elevation.png"
+        gpx_path = route_dir / f"{folder_name}.gpx"
 
         if not geojson_path.exists():
             print(f"[WARN] Nessun GeoJSON trovato in {route_dir}")
@@ -53,25 +62,32 @@ def build_category(category: str, out_file: str):
         # URL RAW dei file nel branch main
         rel = route_dir.relative_to(Path("."))
 
-        html_url = f"{GITHUB_RAW_BASE}/{rel}/{folder_name}_info.html"
-        elev_url = f"{GITHUB_RAW_BASE}/{rel}/{folder_name}_elevation.png"
+        elevation_url = f"{GITHUB_RAW_BASE}/{rel}/{folder_name}_elevation.png"
+        gpx_url = f"{GITHUB_RAW_BASE}/{rel}/{folder_name}.gpx"
 
-        # Popup HTML
-        popup_html = (
-            f"<h3>{folder_name}</h3>"
-            f"<img src='{elev_url}' style='width:100%;margin-bottom:10px;' />"
-            f"<iframe src='{html_url}' "
-            f"style='width:100%;height:400px;border:none;'></iframe>"
-        )
+        # Carica descrizione dal file HTML (se esiste)
+        if html_path.exists():
+            description = html_path.read_text(encoding="utf-8")
+        else:
+            description = "Nessuna descrizione disponibile."
+
+        # Render template
+        popup_html = render_popup_html({
+            "title": folder_name.replace("-", " ").title(),
+            "category": category,
+            "elevation_image": elevation_url,
+            "description": description,
+            "gpx_url": gpx_url
+        })
 
         feature = {
             "type": "Feature",
             "geometry": geometry,
             "properties": {
-                "name": folder_name,
+                "name": folder_name.replace("-", " ").title(),
                 "description": popup_html,
-                "category": category,
-            },
+                "category": category
+            }
         }
 
         features.append(feature)
