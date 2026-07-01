@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 from string import Template
+import shutil  # ← aggiunto per copiare il GPX
 
 BASE = Path("data")
 OUTPUT = Path("docs")
@@ -13,6 +14,7 @@ CATEGORIES = {
 }
 
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/albeb985-Dev/mx5drivingroads/main"
+GITHUB_PAGES_BASE = "https://albeb985-dev.github.io/mx5drivingroads"  # ← aggiunto
 
 
 def render_popup_html(context):
@@ -59,11 +61,26 @@ def build_category(category: str, out_file: str):
         else:
             geometry = data["geometry"]
 
-        # URL RAW dei file nel branch main
+        # URL RAW dei file nel branch main (immagine altimetria)
         rel = route_dir.relative_to(Path("."))
 
         elevation_url = f"{GITHUB_RAW_BASE}/{rel}/{folder_name}_elevation.png"
-        gpx_url = f"{GITHUB_RAW_BASE}/{rel}/{folder_name}.gpx"
+
+        # ---------------------------------------------------------
+        # 🔥 NUOVA PARTE: copia GPX in docs + URL GitHub Pages
+        # ---------------------------------------------------------
+        pages_gpx_dir = OUTPUT / category / folder_name
+        pages_gpx_dir.mkdir(parents=True, exist_ok=True)
+
+        if gpx_path.exists():
+            shutil.copy(gpx_path, pages_gpx_dir)
+
+            gpx_pages_url = (
+                f"{GITHUB_PAGES_BASE}/{category}/{folder_name}/{folder_name}.gpx"
+            )
+        else:
+            gpx_pages_url = ""
+        # ---------------------------------------------------------
 
         # Carica descrizione dal file HTML (se esiste)
         if html_path.exists():
@@ -77,7 +94,7 @@ def build_category(category: str, out_file: str):
             "category": category,
             "elevation_image": elevation_url,
             "description": description,
-            "gpx_url": gpx_url
+            "gpx_url": gpx_pages_url  # ← usa la URL GitHub Pages
         })
 
         feature = {
